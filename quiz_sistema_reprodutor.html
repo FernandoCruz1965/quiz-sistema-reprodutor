@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8" />
+  <title>Quiz: Sistema Reprodutor Humano</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #f0f4f8;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      min-height: 100vh;
+    }
+    .container {
+      background: #fff;
+      padding: 30px;
+      margin-top: 30px;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+      max-width: 800px;
+      width: 100%;
+    }
+    h1, h2, h3 {
+      color: #333;
+    }
+    .header-info {
+      text-align: center;
+      border-bottom: 2px solid #4CAF50;
+      padding-bottom: 20px;
+      margin-bottom: 30px;
+    }
+    .header-info h1 {
+      color: #4CAF50;
+      margin-bottom: 5px;
+    }
+    .header-info h2 {
+      color: #666;
+      margin: 5px 0;
+      font-size: 18px;
+    }
+    .student-info {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+    .student-info label {
+      display: flex;
+      flex-direction: column;
+      font-weight: bold;
+      color: #333;
+    }
+    .student-info input {
+      padding: 8px;
+      border: 2px solid #ddd;
+      border-radius: 6px;
+      font-size: 16px;
+      margin-top: 5px;
+    }
+    .student-info input:focus {
+      border-color: #4CAF50;
+      outline: none;
+    }
+    label, select, button {
+      font-size: 16px;
+    }
+    select {
+      padding: 8px;
+      margin-top: 5px;
+      border: 2px solid #ddd;
+      border-radius: 6px;
+    }
+    button {
+      background-color: #4CAF50;
+      color: white;
+      padding: 12px 20px;
+      margin-top: 20px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 16px;
+      transition: background 0.3s ease;
+    }
+    button:hover {
+      background-color: #45a049;
+    }
+    button:disabled {
+      background-color: #ccc;
+      cursor: not-allowed;
+    }
+    .question {
+      margin-top: 20px;
+    }
+    .options button {
+      background-color: #2196F3;
+      width: 100%;
+      text-align: left;
+      padding: 12px;
+      margin: 8px 0;
+      border: none;
+      border-radius: 6px;
+      color: white;
+      font-size: 16px;
+      transition: background 0.2s;
+      cursor: pointer;
+    }
+    .options button:hover {
+      background-color: #1976D2;
+    }
+    .options button.selected {
+      background-color: #4CAF50;
+      border: 3px solid #388E3C;
+      font-weight: bold;
+      box-shadow: 0 0 10px rgba(76, 175, 80, 0.5);
+    }
+    .options button.selected:hover {
+      background-color: #45a049;
+    }
+    #timer {
+      font-weight: bold;
+      font-size: 18px;
+      margin-bottom: 10px;
+      color: #d32f2f;
+    }
+    #progressBar {
+      height: 12px;
+      background-color: #e0e0e0;
+      border-radius: 10px;
+      overflow: hidden;
+      margin-top: 10px;
+    }
+    #progress {
+      height: 100%;
+      width: 0%;
+      background-color: #4caf50;
+      transition: width 0.4s ease;
+    }
+    .hidden {
+      display: none;
+    }
+    #resultList p {
+      background: #f9f9f9;
+      padding: 10px;
+      border-left: 5px solid #ccc;
+      margin: 8px 0;
+      border-radius: 6px;
+    }
+    #finalScore {
+      font-size: 20px;
+      padding-top: 10px;
+      color: #333;
+      text-align: center;
+      background: #f0f8ff;
+      padding: 20px;
+      border-radius: 8px;
+      margin: 20px 0;
+    }
+    .correct {
+      color: green;
+      font-weight: bold;
+    }
+    .incorrect {
+      color: red;
+      font-weight: bold;
+    }
+    .user-answer-correct {
+      background-color: #d4edda;
+      color: #155724;
+      font-weight: bold;
+      padding: 3px 6px;
+      border-radius: 4px;
+      border: 1px solid #c3e6cb;
+    }
+    .user-answer-incorrect {
+      background-color: #f8d7da;
+      color: #721c24;
+      font-weight: bold;
+      padding: 3px 6px;
+      border-radius: 4px;
+      border: 1px solid #f5c6cb;
+    }
+    .correct-answer {
+      background-color: #d1ecf1;
+      color: #0c5460;
+      font-weight: bold;
+      padding: 3px 6px;
+      border-radius: 4px;
+      border: 1px solid #bee5eb;
+    }
+    .export-section {
+      text-align: center;
+      margin-top: 30px;
+      padding-top: 20px;
+      border-top: 2px solid #4CAF50;
+    }
+    .pdf-button {
+      background-color: #f44336;
+      font-size: 18px;
+      padding: 15px 30px;
+    }
+    .pdf-button:hover {
+      background-color: #d32f2f;
+    }
+    .validation-error {
+      color: #f44336;
+      font-size: 14px;
+      margin-top: 5px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Página inicial com informações do aluno -->
+    <div id="initial" class="initial-page">
+      <div class="header-info">
+        <h1>Agrupamento Muralhas do Minho</h1>
+        <h2>Disciplina: Ciências Naturais</h2>
+        <h2>Professor: Fernando Cruz</h2>
+        <h2>Quiz: Sistema Reprodutor Humano</h2>
+      </div>
+      
+      <div class="student-info">
+        <label>
+          Nome do Aluno:
+          <input type="text" id="studentName" placeholder="Digite seu nome completo" required>
+          <span id="nameError" class="validation-error hidden">Por favor, digite seu nome</span>
+        </label>
+        
+        <label>
+          Número:
+          <input type="number" id="studentNumber" placeholder="Número do aluno" required>
+          <span id="numberError" class="validation-error hidden">Por favor, digite seu número</span>
+        </label>
+        
+        <label>
+          Turma:
+          <input type="text" id="studentClass" placeholder="Ex: 9ºA" required>
+          <span id="classError" class="validation-error hidden">Por favor, digite sua turma</span>
+        </label>
+        
+        <label>
+          Data:
+          <input type="date" id="testDate" required>
+          <span id="dateError" class="validation-error hidden">Por favor, selecione a data</span>
+        </label>
+        
+        <label>
+          Hora:
+          <input type="time" id="testTime" required>
+          <span id="timeError" class="validation-error hidden">Por favor, selecione a hora</span>
+        </label>
+      </div>
+      
+      <button onclick="proceedToConfig()" id="proceedBtn">Prosseguir para Configurações</button>
+    </div>
+
+    <!-- Configurações do quiz -->
+    <div id="config" class="hidden">
+      <h2>Configurações do Quiz</h2>
+      <label>Tempo por pergunta:
+        <select id="timeSelect">
+          <option value="30">30 segundos</option>
+          <option value="45">45 segundos</option>
+          <option value="60">1 minuto</option>
+        </select>
+      </label>
+      <br><br>
+      <label>Método de avanço:
+        <select id="modeSelect">
+          <option value="auto">Automático (após tempo)</option>
+          <option value="manual">Manual (botão "Próxima")</option>
+        </select>
+      </label>
+      <br><br>
+      <button onclick="startQuiz()">Iniciar Quiz</button>
+    </div>
+
+    <!-- Quiz -->
+    <div id="quiz" class="hidden">
+      <div id="timer"></div>
+      <div id="progressBar"><div id="progress"></div></div>
+      <div id="questionContainer"></div>
+      <button id="nextBtn" onclick="nextQuestion()" class="hidden">Próxima</button>
+    </div>
+
+    <!-- Resumo e resultados -->
+    <div id="summary" class="hidden">
+      <div class="header-info">
+        <h1>Agrupamento Muralhas do Minho</h1>
+        <h2>Disciplina: Ciências Naturais - Professor: Fernando Cruz</h2>
+        <div id="studentInfo"></div>
+      </div>
+      
+      <h2>Resumo do Quiz - Sistema Reprodutor Humano</h2>
+      <div id="resultList"></div>
+      <div id="finalScore"></div>
+      
+      <div class="export-section">
+        <button onclick="exportToPDF()" class="pdf-button">📄 Exportar para PDF</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const quizData = [
+      { q: "Qual é a principal função do sistema reprodutor masculino?", o: ["Produzir óvulos", "Produzir espermatozoides", "Regular o ciclo menstrual", "Nutrir o embrião"], a: 1 },
+      { q: "Qual destas glândulas produz testosterona?", o: ["Ovários", "Pâncreas", "Testículos", "Hipófise"], a: 2 },
+      { q: "Qual é o nome da célula reprodutiva feminina?", o: ["Espermatozoide", "Zigoto", "Embrião", "Óvulo"], a: 3 },
+      { q: "Onde ocorre geralmente a fecundação no corpo humano?", o: ["Ovários", "Útero", "Trompas de Falópio", "Vagina"], a: 2 },
+      { q: "Como se chama a estrutura que alimenta o feto durante a gravidez?", o: ["Placenta", "Ovário", "Testículo", "Hipotálamo"], a: 0 },
+      { q: "O ciclo menstrual tem, em média, quantos dias?", o: ["14 dias", "28 dias", "30 dias", "40 dias"], a: 1 },
+      { q: "Qual é o nome da primeira célula formada após a fecundação?", o: ["Óvulo", "Embrião", "Feto", "Zigoto"], a: 3 },
+      { q: "Qual destas estruturas faz parte do sistema reprodutor feminino?", o: ["Pênis", "Testículo", "Útero", "Vesícula biliar"], a: 2 },
+      { q: "O que acontece durante a menstruação?", o: ["Liberação de espermatozoides", "Eliminação do revestimento do útero", "Fecundação do óvulo", "Produção de leite materno"], a: 1 },
+      { q: "Qual é a função dos espermatozoides?", o: ["Iniciar o ciclo menstrual", "Fecundar o óvulo", "Produzir hormonas", "Controlar a temperatura corporal"], a: 1 },
+      { q: "O que caracteriza a puberdade?", o: ["Crescimento celular", "Produção de hormonas sexuais", "Formação do zigoto", "Envelhecimento"], a: 1 },
+      { q: "Qual é a função principal dos ovários?", o: ["Produzir espermatozoides", "Liberar óvulos e hormonas sexuais", "Nutrir o embrião", "Controlar a pressão arterial"], a: 1 },
+      { q: "A gravidez inicia-se com:", o: ["O ciclo menstrual", "A fecundação do óvulo", "O nascimento do bebé", "A produção de leite materno"], a: 1 },
+      { q: "Durante a gravidez, o cordão umbilical serve para:", o: ["Nutrir o bebé e fornecer oxigénio", "Produzir óvulos", "Controlar a temperatura corporal", "Regular o ciclo menstrual"], a: 0 },
+      { q: "Qual é o nome da bolsa que protege o bebé no útero?", o: ["Placenta", "Trompas de Falópio", "Bolsa amniótica", "Vesícula seminal"], a: 2 },
+      { q: "Qual destas fases representa o desenvolvimento inicial do bebé?", o: ["Zigoto", "Feto", "Menopausa", "Idade adulta"], a: 0 },
+      { q: "Onde se forma o espermatozoide?", o: ["Útero", "Trompas de Falópio", "Testículos", "Placenta"], a: 2 },
+      { q: "Qual das seguintes etapas ocorre primeiro na reprodução humana?", o: ["Formação do feto", "Crescimento do bebé", "Fecundação do óvulo", "Produção de leite materno"], a: 2 },
+      { q: "Em que órgão o bebé se desenvolve antes de nascer?", o: ["Testículo", "Ovário", "Útero", "Vesícula seminal"], a: 2 },
+      { q: "O que acontece durante a fecundação?", o: ["O espermatozoide une-se ao óvulo", "O útero elimina o revestimento interno", "O bebé inicia a produção de leite materno", "O cordão umbilical é formado"], a: 0 },
+      { q: "Qual destas hormonas é essencial para o desenvolvimento dos caracteres sexuais masculinos?", o: ["Estrogénio", "Progesterona", "Testosterona", "Insulina"], a: 2 },
+      { q: "A reprodução humana é um processo:", o: ["Assexuado", "Sexuado", "Artificial", "Mecânico"], a: 1 },
+      { q: "Qual é a principal função dos testículos?", o: ["Produzir óvulos", "Produzir espermatozoides e hormonas sexuais", "Controlar a temperatura corporal", "Nutrir o bebé"], a: 1 },
+      { q: "Como se chama o período de tempo em que o bebé se desenvolve no útero?", o: ["Menstruação", "Gestação", "Puberdade", "Zigoto"], a: 1 },
+      { q: "Qual destas opções NÃO faz parte do sistema reprodutor masculino?", o: ["Testículos", "Útero", "Pênis", "Vesícula seminal"], a: 1 },
+      { q: "Em que idade geralmente ocorre a puberdade?", o: ["Aos 2 anos", "Entre os 10 e 18 anos", "Aos 40 anos", "Após os 60 anos"], a: 1 },
+      { q: "Qual é o resultado final da reprodução humana?", o: ["Formação de células", "Nascimento de um novo ser humano", "Produção de hormonas", "Produção de leite materno"], a: 1 },
+      { q: "Qual é a célula reprodutiva masculina?", o: ["Espermatozóide", "Esperma", "Zigoto", "Embrião"], a: 0 },
+      { q: "Qual é a função principal do útero no sistema reprodutor feminino?", o: ["Produzir hormonas", "Proteger os ovários", "Acolher e nutrir o embrião", "Liberar óvulos"], a: 2 },
+      { q: "Onde ocorre normalmente a fecundação?", o: ["Útero", "Trompas de Falópio", "Ovário", "Vagina"], a: 1 },
+      { q: "Após a fecundação, como é chamado o primeiro estágio de desenvolvimento do ser humano?", o: ["Embrião", "Feto", "Óvulo", "Bebé"], a: 0 },
+      { q: "Qual é a função da placenta durante a gravidez?", o: ["Controlar os batimentos cardíacos do bebé", "Produzir leite materno", "Trocar nutrientes e oxigénio entre mãe e bebé", "Armazenar células reprodutivas"], a: 2 }
+    ];
+
+    let current = 0, userAnswers = [], timer, timePerQuestion, autoMode;
+    let studentData = {};
+
+    // Definir data e hora atuais como padrão
+    window.onload = function() {
+      const now = new Date();
+      document.getElementById('testDate').value = now.toISOString().split('T')[0];
+      document.getElementById('testTime').value = now.toTimeString().split(':').slice(0,2).join(':');
+    };
+
+    function validateStudentInfo() {
+      let isValid = true;
+      const fields = ['studentName', 'studentNumber', 'studentClass', 'testDate', 'testTime'];
+      
+      fields.forEach(field => {
+        const element = document.getElementById(field);
+        const errorElement = document.getElementById(field.replace('student', '').replace('test', '').toLowerCase() + 'Error');
+        
+        if (!element.value.trim()) {
+          errorElement.classList.remove('hidden');
+          isValid = false;
+        } else {
+          errorElement.classList.add('hidden');
+        }
+      });
+      
+      return isValid;
+    }
+
+    function proceedToConfig() {
+      if (!validateStudentInfo()) {
+        return;
+      }
+      
+      // Armazenar dados do estudante
+      studentData = {
+        name: document.getElementById('studentName').value,
+        number: document.getElementById('studentNumber').value,
+        class: document.getElementById('studentClass').value,
+        date: document.getElementById('testDate').value,
+        time: document.getElementById('testTime').value
+      };
+      
+      document.getElementById("initial").classList.add("hidden");
+      document.getElementById("config").classList.remove("hidden");
+    }
+
+    function startQuiz() {
+      document.getElementById("config").classList.add("hidden");
+      document.getElementById("quiz").classList.remove("hidden");
+      timePerQuestion = parseInt(document.getElementById("timeSelect").value);
+      autoMode = document.getElementById("modeSelect").value === "auto";
+      showQuestion();
+    }
+
+    function showQuestion() {
+      const q = quizData[current];
+      const container = document.getElementById("questionContainer");
+      container.innerHTML = `<div class="question"><h3>Pergunta ${current + 1} de ${quizData.length}: ${q.q}</h3></div>`;
+      const options = document.createElement("div");
+      options.className = "options";
+      q.o.forEach((opt, i) => {
+        const btn = document.createElement("button");
+        btn.textContent = opt;
+        btn.onclick = () => selectAnswer(i);
+        options.appendChild(btn);
+      });
+      container.appendChild(options);
+      document.getElementById("nextBtn").classList.toggle("hidden", autoMode);
+      updateProgressBar();
+      if (autoMode) startTimer();
+    }
+
+    function updateProgressBar() {
+      const progress = document.getElementById("progress");
+      const percent = ((current) / quizData.length) * 100;
+      progress.style.width = percent + "%";
+    }
+
+    function startTimer() {
+      let t = timePerQuestion;
+      const timerEl = document.getElementById("timer");
+      timerEl.textContent = `⏱️ Tempo restante: ${t}s`;
+      clearInterval(timer);
+      timer = setInterval(() => {
+        t--;
+        timerEl.textContent = `⏱️ Tempo restante: ${t}s`;
+        if (t <= 0) {
+          clearInterval(timer);
+          userAnswers.push(null);
+          nextQuestion();
+        }
+      }, 1000);
+    }
+
+    function selectAnswer(index) {
+      // Remover seleção anterior
+      document.querySelectorAll('.options button').forEach(btn => {
+        btn.classList.remove('selected');
+      });
+      
+      // Adicionar classe de selecionado à opção escolhida
+      document.querySelectorAll('.options button')[index].classList.add('selected');
+      
+      userAnswers[current] = index;
+      if (autoMode) {
+        clearInterval(timer);
+        setTimeout(() => {
+          nextQuestion();
+        }, 500); // Pequeno delay para mostrar a seleção
+      }
+    }
+
+    function nextQuestion() {
+      current++;
+      if (current < quizData.length) {
+        showQuestion();
+      } else {
+        showSummary();
+      }
+    }
+
+    function showSummary() {
+      document.getElementById("quiz").classList.add("hidden");
+      document.getElementById("summary").classList.remove("hidden");
+      
+      // Mostrar informações do estudante
+      const studentInfo = document.getElementById("studentInfo");
+      studentInfo.innerHTML = `
+        <h3>Aluno: ${studentData.name} | Nº ${studentData.number} | Turma: ${studentData.class}</h3>
+        <h3>Data: ${new Date(studentData.date).toLocaleDateString('pt-PT')} | Hora: ${studentData.time}</h3>
+      `;
+      
+      let correct = 0;
+      let list = "";
+      quizData.forEach((q, i) => {
+        const user = userAnswers[i];
+        const isCorrect = user === q.a;
+        if (isCorrect) correct++;
+        
+        const userAnswerText = user !== null ? q.o[user] : "<em>Sem resposta</em>";
+        const userAnswerClass = user !== null ? (isCorrect ? 'user-answer-correct' : 'user-answer-incorrect') : '';
+        
+        list += `<p><strong>Pergunta ${i + 1}: ${q.q}</strong><br>
+        A sua resposta: <span class="${userAnswerClass}">${userAnswerText}</span><br>
+        Resposta correta: <span class="correct-answer">${q.o[q.a]}</span><br>
+        ${isCorrect ? "<span class='correct'>✔ Correto</span>" : "<span class='incorrect'>✘ Incorreto</span>"}</p>`;
+      });
+      
+      const percent = Math.round((correct / quizData.length) * 100);
+      let level = "";
+      if (percent < 50) level = "Não Satisfaz";
+      else if (percent < 70) level = "Satisfaz";
+      else if (percent < 90) level = "Satisfaz Bastante";
+      else level = "Excelente";
+      
+      document.getElementById("resultList").innerHTML = list;
+      document.getElementById("finalScore").innerHTML = `
+        <h3>Resultado Final</h3>
+        <p>Respostas corretas: ${correct} de ${quizData.length}</p>
+        <p>Pontuação: <strong>${percent}%</strong></p>
+        <p>Avaliação: <strong>${level}</strong></p>
+      `;
+    }
+
+    function exportToPDF() {
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+      
+      // Configurar fonte
+      doc.setFont('helvetica');
+      
+      // Cabeçalho
+      doc.setFontSize(16);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Agrupamento Muralhas do Minho', 105, 20, { align: 'center' });
+      
+      doc.setFontSize(12);
+      doc.text('Disciplina: Ciências Naturais', 105, 30, { align: 'center' });
+      doc.text('Professor: Fernando Cruz', 105, 40, { align: 'center' });
+      doc.text('Quiz: Sistema Reprodutor Humano', 105, 50, { align: 'center' });
+      
+      // Linha separadora
+      doc.line(20, 55, 190, 55);
+      
+      // Cálculo do resultado
+      let correct = 0;
+      userAnswers.forEach((answer, i) => {
+        if (answer === quizData[i].a) correct++;
+      });
+      
+      const percent = Math.round((correct / quizData.length) * 100);
+      let level = "";
+      if (percent < 50) level = "Não Satisfaz";
+      else if (percent < 70) level = "Satisfaz";
+      else if (percent < 90) level = "Satisfaz Bastante";
+      else level = "Excelente";
+
+      // Informações do aluno e avaliação no cabeçalho
+      doc.setFontSize(11);
+      doc.setFont('helvetica', 'normal');
+      doc.text(`Aluno: ${studentData.name}`, 20, 70);
+      doc.text(`Número: ${studentData.number}`, 20, 80);
+      doc.text(`Turma: ${studentData.class}`, 120, 70);
+      doc.text(`Data: ${new Date(studentData.date).toLocaleDateString('pt-PT')}`, 120, 80);
+      doc.text(`Hora: ${studentData.time}`, 20, 90);
+      
+      // Avaliação no cabeçalho
+      doc.setFont('helvetica', 'bold');
+      doc.text(`Pontuação: ${percent}% (${correct}/${quizData.length})`, 120, 90);
+      doc.text(`Avaliação: ${level}`, 20, 100);
+      
+      // Linha separadora
+      doc.line(20, 105, 190, 105);
+      
+      // Detalhes das respostas
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Resumo das Respostas:', 20, 115);
+      
+      let yPos = 125;
+      doc.setFont('helvetica', 'normal');
+      
+      quizData.forEach((q, i) => {
+        if (yPos > 270) {
+          doc.addPage();
+          yPos = 20;
+        }
+        
+        const user = userAnswers[i];
+        const isCorrect = user === q.a;
+        
+        // Pergunta (quebrar linha se muito longa)
+        const questionLines = doc.splitTextToSize(`${i + 1}. ${q.q}`, 170);
+        doc.text(questionLines, 20, yPos);
+        yPos += questionLines.length * 5;
+        
+        // Resposta do aluno
+        doc.text(`Sua resposta: ${user !== null ? q.o[user] : "Sem resposta"}`, 25, yPos);
+        yPos += 5;
+        
+        // Resposta correta
+        doc.text(`Resposta correta: ${q.o[q.a]}`, 25, yPos);
+        yPos += 5;
+        
+        // Status
+        doc.setFont('helvetica', 'bold');
+        if (isCorrect) {
+          doc.setTextColor(0, 128, 0);
+          doc.text('✓ Correto', 25, yPos);
+        } else {
+          doc.setTextColor(255, 0, 0);
+          doc.text('✗ Incorreto', 25, yPos);
+        }
+        doc.setTextColor(0, 0, 0);
+        doc.setFont('helvetica', 'normal');
+        yPos += 10;
+      });
+      
+      // Salvar o PDF
+      const fileName = `Quiz_${studentData.name.replace(/\s+/g, '_')}_${studentData.number}.pdf`;
+      doc.save(fileName);
+    }
+  </script>
+</body>
+</html>
