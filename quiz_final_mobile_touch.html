@@ -1,0 +1,1772 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quiz Interativo Melhorado - Agrupamento Muralhas do Minho</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #f0f4f8;
+      margin: 0;
+      padding: 10px;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      min-height: 100vh;
+      font-size: 16px;
+      /* Evitar scroll durante drag em mobile */
+      overscroll-behavior-y: contain;
+    }
+    .container {
+      background: #fff;
+      padding: 15px;
+      margin: 0;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+      max-width: 800px;
+      width: 100%;
+    }
+    h1, h2, h3 {
+      color: #333;
+      margin: 10px 0;
+    }
+    .header-info {
+      text-align: center;
+      border-bottom: 2px solid #4CAF50;
+      padding-bottom: 15px;
+      margin-bottom: 20px;
+    }
+    .header-info h1 {
+      color: #4CAF50;
+      margin-bottom: 5px;
+      font-size: 20px;
+    }
+    .header-info h2 {
+      color: #666;
+      margin: 5px 0;
+      font-size: 14px;
+    }
+    .student-info {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    .student-info label {
+      display: flex;
+      flex-direction: column;
+      font-weight: bold;
+      color: #333;
+      font-size: 14px;
+    }
+    .student-info input {
+      padding: 12px;
+      border: 2px solid #ddd;
+      border-radius: 6px;
+      font-size: 16px;
+      margin-top: 5px;
+      width: 100%;
+    }
+    .student-info input:focus {
+      border-color: #4CAF50;
+      outline: none;
+    }
+    label, select, button {
+      font-size: 16px;
+    }
+    select {
+      padding: 12px;
+      margin-top: 5px;
+      border: 2px solid #ddd;
+      border-radius: 6px;
+      font-size: 16px;
+      width: 100%;
+    }
+    button {
+      background-color: #4CAF50;
+      color: white;
+      padding: 15px 20px;
+      margin-top: 15px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 16px;
+      transition: background 0.3s ease;
+      width: 100%;
+      touch-action: manipulation;
+    }
+    button:hover {
+      background-color: #45a049;
+    }
+    button:disabled {
+      background-color: #ccc;
+      cursor: not-allowed;
+    }
+    .question {
+      margin-top: 15px;
+      padding: 15px;
+      border: 1px solid #eee;
+      border-radius: 8px;
+      background-color: #fdfdfd;
+    }
+    .question-title {
+        font-weight: bold;
+        margin-bottom: 15px;
+        font-size: 1.1em;
+        color: #333;
+        line-height: 1.4;
+    }
+
+    /* --- Estilos Específicos por Tipo de Pergunta (Mobile-First) --- */
+
+    /* 1. Escolha Múltipla */
+    .options-mcq {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .options-mcq button {
+      background-color: #2196F3;
+      width: 100%;
+      text-align: left;
+      padding: 15px;
+      margin: 0;
+      border: none;
+      border-radius: 6px;
+      color: white;
+      font-size: 15px;
+      transition: background 0.2s;
+      cursor: pointer;
+      line-height: 1.3;
+      min-height: 50px;
+    }
+    .options-mcq button:hover {
+      background-color: #1976D2;
+    }
+    .options-mcq button.selected {
+      background-color: #4CAF50;
+      border: 3px solid #388E3C;
+      font-weight: bold;
+      box-shadow: 0 0 10px rgba(76, 175, 80, 0.5);
+    }
+    .options-mcq button.selected:hover {
+      background-color: #45a049;
+    }
+
+    /* 2. Múltiplas Respostas Corretas */
+    .options-mca {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .options-mca label {
+        display: flex;
+        align-items: flex-start;
+        background-color: #e3f2fd;
+        padding: 12px;
+        margin: 0;
+        border-radius: 6px;
+        border: 1px solid #bbdefb;
+        cursor: pointer;
+        transition: background-color 0.2s;
+        line-height: 1.3;
+        min-height: 50px;
+    }
+    .options-mca label:hover {
+        background-color: #bbdefb;
+    }
+    .options-mca input[type="checkbox"] {
+        margin-right: 10px;
+        margin-top: 2px;
+        accent-color: #1e88e5;
+        min-width: 18px;
+        min-height: 18px;
+    }
+
+    /* 3. Completar Frases (Arrastar Palavras) */
+    .fill-blank-container {
+        padding: 15px;
+        background-color: #f5f5f5;
+        border-radius: 8px;
+        margin-top: 10px;
+    }
+    .sentence-part {
+        display: inline-block;
+        margin: 2px;
+        line-height: 1.6;
+    }
+    .blank-space {
+        display: inline-block;
+        border: 2px dashed #aaa;
+        min-width: 80px;
+        min-height: 35px;
+        margin: 2px;
+        padding: 5px;
+        vertical-align: middle;
+        background-color: #fff;
+        border-radius: 4px;
+        text-align: center;
+        line-height: 25px;
+        font-weight: bold;
+        font-size: 14px;
+        touch-action: none; /* Para eventos de toque */
+    }
+    .blank-space.drag-over {
+        border-color: #4CAF50;
+        background-color: #dcedc8;
+    }
+    .word-bank {
+        margin-top: 15px;
+        padding: 15px;
+        background-color: #e8f5e9;
+        border: 1px solid #c8e6c9;
+        border-radius: 8px;
+    }
+    .word-bank h4 {
+        margin-top: 0;
+        margin-bottom: 10px;
+        color: #2e7d32;
+        font-size: 16px;
+    }
+    .draggable-word {
+        display: inline-block;
+        background-color: #a5d6a7;
+        color: #1b5e20;
+        padding: 8px 12px;
+        margin: 4px;
+        border-radius: 4px;
+        cursor: grab;
+        border: 1px solid #81c784;
+        user-select: none;
+        font-weight: bold;
+        font-size: 14px;
+        min-height: 35px;
+        line-height: 1.2;
+        touch-action: none; /* Para eventos de toque */
+        position: relative; /* Para posicionamento durante drag */
+    }
+    .draggable-word:active {
+        cursor: grabbing;
+    }
+    .draggable-word.dragging {
+        opacity: 0.5;
+        z-index: 100; /* Para ficar por cima */
+    }
+
+    /* 4. Ordenar Frases */
+    .order-items-container {
+        list-style: none;
+        padding: 0;
+        margin-top: 10px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+    .order-item {
+        background-color: #fff3e0;
+        border: 1px solid #ffe0b2;
+        padding: 12px;
+        border-radius: 6px;
+        cursor: move;
+        user-select: none;
+        transition: background-color 0.2s;
+        line-height: 1.3;
+        min-height: 50px;
+        display: flex;
+        align-items: center;
+        touch-action: none; /* Para eventos de toque */
+    }
+    .order-item:hover {
+        background-color: #ffcc80;
+    }
+    .order-item.dragging {
+        opacity: 0.5;
+        background: #ffcc80;
+        transform: rotate(1deg);
+        z-index: 100;
+    }
+    .order-instruction {
+        font-style: italic;
+        color: #666;
+        margin-top: 10px;
+        font-size: 14px;
+    }
+
+    /* 5. Espaços para Resposta de Uma Palavra */
+    .short-answer-container {
+        margin-top: 10px;
+    }
+    .short-answer-container label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: normal;
+        color: #555;
+        font-size: 14px;
+    }
+    .short-answer-container input[type="text"] {
+        padding: 12px;
+        border: 2px solid #ccc;
+        border-radius: 4px;
+        font-size: 16px;
+        width: 100%;
+        margin-bottom: 10px;
+    }
+    .short-answer-container input[type="text"]:focus {
+        border-color: #4CAF50;
+        outline: none;
+    }
+
+    /* --- Outros Estilos --- */
+    #progressBar {
+      height: 12px;
+      background-color: #e0e0e0;
+      border-radius: 10px;
+      overflow: hidden;
+      margin: 15px 0;
+    }
+    #progress {
+      height: 100%;
+      width: 0%;
+      background-color: #4caf50;
+      transition: width 0.4s ease;
+    }
+    .hidden {
+      display: none;
+    }
+    #resultList .result-item {
+      background: #f9f9f9;
+      padding: 15px;
+      border-left: 5px solid #ccc;
+      margin: 10px 0;
+      border-radius: 6px;
+    }
+    #resultList .result-item.correct {
+        border-left-color: #4CAF50;
+    }
+    #resultList .result-item.incorrect {
+        border-left-color: #f44336;
+    }
+    #resultList .question-text {
+        font-weight: bold;
+        margin-bottom: 8px;
+        line-height: 1.3;
+    }
+    #resultList .user-answer,
+    #resultList .correct-answer {
+        margin: 5px 0;
+        font-size: 0.95em;
+        line-height: 1.3;
+    }
+    .user-answer-correct {
+      color: #155724;
+      font-weight: bold;
+    }
+    .user-answer-incorrect {
+      color: #721c24;
+      font-weight: bold;
+    }
+    .correct-answer-label {
+        font-weight: bold;
+        color: #155724;
+    }
+    .correct-answer-value {
+        font-style: italic;
+        color: #155724;
+    }
+    #finalScore {
+      font-size: 18px;
+      color: #333;
+      text-align: center;
+      background: #f0f8ff;
+      padding: 20px;
+      border-radius: 8px;
+      margin: 20px 0;
+      line-height: 1.4;
+    }
+    .export-section {
+      text-align: center;
+      margin-top: 20px;
+      padding-top: 20px;
+      border-top: 2px solid #4CAF50;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .pdf-button {
+      background-color: #f44336;
+      font-size: 16px;
+      padding: 15px 20px;
+    }
+    .pdf-button:hover {
+      background-color: #d32f2f;
+    }
+    .excel-button {
+      background-color: #217346;
+      font-size: 16px;
+      padding: 15px 20px;
+    }
+    .excel-button:hover {
+      background-color: #1e6b3e;
+    }
+    .email-button {
+      background-color: #0078D4;
+      font-size: 16px;
+      padding: 15px 20px;
+    }
+    .email-button:hover {
+      background-color: #0063B1;
+    }
+    .validation-error {
+      color: #f44336;
+      font-size: 14px;
+      margin-top: 5px;
+    }
+    .save-status {
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      left: 10px;
+      padding: 12px;
+      border-radius: 8px;
+      color: white;
+      font-weight: bold;
+      z-index: 1000;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+      text-align: center;
+    }
+    .save-status.success { background-color: #4CAF50; }
+    .save-status.error { background-color: #f44336; }
+    .save-status.loading { background-color: #2196F3; }
+    .config-info {
+      background-color: #e8f5e8;
+      border: 1px solid #4CAF50;
+      border-radius: 8px;
+      padding: 15px;
+      margin: 15px 0;
+      color: #2e7d32;
+    }
+    .config-info h4 { 
+      margin-top: 0; 
+      color: #2e7d32; 
+      font-size: 16px;
+    }
+    .email-config {
+      background-color: #ffeb3b;
+      border: 3px solid #f57c00;
+      border-radius: 8px;
+      padding: 15px;
+      margin: 20px 0;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+      position: relative;
+    }
+    .email-config h4 { 
+      margin-top: 0; 
+      color: #e65100; 
+      font-size: 18px; 
+    }
+    .email-config p { 
+      font-size: 14px; 
+      margin-bottom: 10px; 
+      color: #333; 
+      line-height: 1.3;
+    }
+    .email-config input {
+      width: 100%;
+      padding: 12px;
+      margin-top: 5px;
+      margin-bottom: 10px;
+      border: 2px solid #f57c00;
+      border-radius: 6px;
+      font-size: 16px;
+      background-color: #fff;
+    }
+    .email-config input:focus { 
+      border-color: #e65100; 
+      outline: none; 
+      box-shadow: 0 0 8px rgba(230, 81, 0, 0.5); 
+    }
+    .email-config::before { 
+      content: "⚠️ IMPORTANTE"; 
+      position: absolute; 
+      top: -12px; 
+      left: 15px; 
+      background-color: #f57c00; 
+      color: white; 
+      padding: 4px 12px; 
+      border-radius: 15px; 
+      font-weight: bold; 
+      font-size: 12px;
+    }
+    .email-config-note { 
+      font-size: 12px; 
+      color: #e65100; 
+      font-style: italic; 
+      margin-top: 5px; 
+      line-height: 1.2;
+    }
+
+    /* Media Queries para Desktop */
+    @media (min-width: 600px) {
+      body {
+        padding: 20px;
+      }
+      .container {
+        padding: 30px;
+      }
+      .header-info h1 {
+        font-size: 28px;
+      }
+      .header-info h2 {
+        font-size: 18px;
+      }
+      .student-info {
+        grid-template-columns: 1fr 1fr;
+        gap: 15px;
+      }
+      .export-section {
+        flex-direction: row;
+        justify-content: center;
+        flex-wrap: wrap;
+      }
+      .export-section button {
+        width: auto;
+        min-width: 200px;
+        margin: 5px;
+      }
+      .save-status {
+        right: 20px;
+        left: auto;
+        max-width: 300px;
+      }
+      .email-config h4 {
+        font-size: 20px;
+      }
+      .email-config p {
+        font-size: 16px;
+      }
+      .email-config input {
+        font-size: 18px;
+      }
+    }
+
+    /* Melhorias para touch devices */
+    @media (hover: none) and (pointer: coarse) {
+      button {
+        min-height: 48px;
+      }
+      .options-mcq button {
+        min-height: 55px;
+        font-size: 16px;
+      }
+      .options-mca label {
+        min-height: 55px;
+        padding: 15px;
+      }
+      .draggable-word {
+        min-height: 40px;
+        padding: 10px 15px;
+      }
+      .order-item {
+        min-height: 55px;
+        padding: 15px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Notificação de Status de Salvamento -->
+  <div id="saveStatus" class="save-status hidden"></div>
+
+  <div class="container">
+    <!-- Página inicial com informações do aluno -->
+    <div id="initial" class="initial-page">
+      <div class="header-info">
+        <h1>Agrupamento Muralhas do Minho</h1>
+        <h2>Disciplina: Ciências Naturais</h2>
+        <h2>Professor: Fernando Cruz</h2>
+        <h2>Quiz: Sistema Reprodutor Humano</h2>
+      </div>
+
+      <div class="config-info">
+        <h4>✅ Sistema de Exportação Múltipla e Tipos de Perguntas Variados</h4>
+        <p>Este quiz inclui diferentes tipos de perguntas e permite exportar os resultados para Excel, PDF ou enviá-los por email.</p>
+      </div>
+
+      <div class="email-config">
+        <h4>📧 CONFIGURAÇÃO DE EMAIL DO PROFESSOR</h4>
+        <p>Insira abaixo o email para onde os resultados serão enviados:</p>
+        <input type="email" id="teacherEmail" placeholder="email@exemplo.com" value="turmasvalenca@gmail.com">
+        <div class="email-config-note">* Este email será usado como destinatário quando o aluno clicar em "Enviar por Email" ao final do quiz</div>
+      </div>
+
+      <div class="student-info">
+        <label>
+          Nome do Aluno:
+          <input type="text" id="studentName" placeholder="Digite seu nome completo" required>
+          <span id="nameError" class="validation-error hidden">Por favor, digite seu nome</span>
+        </label>
+        <label>
+          Número:
+          <input type="number" id="studentNumber" placeholder="Número do aluno" required>
+          <span id="numberError" class="validation-error hidden">Por favor, digite seu número</span>
+        </label>
+        <label>
+          Turma:
+          <input type="text" id="studentClass" placeholder="Ex: 9ºA" required>
+          <span id="classError" class="validation-error hidden">Por favor, digite sua turma</span>
+        </label>
+        <label>
+          Data:
+          <input type="date" id="testDate" required>
+          <span id="dateError" class="validation-error hidden">Por favor, selecione a data</span>
+        </label>
+        <label>
+          Hora:
+          <input type="time" id="testTime" required>
+          <span id="timeError" class="validation-error hidden">Por favor, selecione a hora</span>
+        </label>
+      </div>
+
+      <button onclick="startQuiz()" id="startBtn">Iniciar Quiz</button>
+    </div>
+
+    <!-- Quiz -->
+    <div id="quiz" class="hidden">
+      <div id="progressBar"><div id="progress"></div></div>
+      <div id="questionContainer">
+        <!-- O conteúdo da pergunta será carregado aqui pelo JavaScript -->
+      </div>
+      <button id="nextBtn" onclick="nextQuestion()">Próxima Pergunta</button>
+      <button id="finishBtn" onclick="finishQuiz()" class="hidden">Terminar Quiz</button>
+    </div>
+
+    <!-- Resumo e resultados -->
+    <div id="summary" class="hidden">
+      <div class="header-info">
+        <h1>Agrupamento Muralhas do Minho</h1>
+        <h2>Disciplina: Ciências Naturais - Professor: Fernando Cruz</h2>
+        <div id="studentInfo"></div>
+      </div>
+
+      <h2>Resumo do Quiz - Sistema Reprodutor Humano</h2>
+      <div id="resultList">
+        <!-- Os resultados detalhados serão inseridos aqui -->
+      </div>
+      <div id="finalScore">
+        <!-- A pontuação final e avaliação qualitativa serão inseridas aqui -->
+      </div>
+
+      <div class="export-section">
+        <button onclick="sendByEmail()" class="email-button" id="emailButton">
+          📧 Enviar por Email
+        </button>
+        <button onclick="exportToExcel()" class="excel-button" id="excelButton">
+          📊 Exportar para Excel
+        </button>
+        <button onclick="exportToPDF()" class="pdf-button">
+          📄 Exportar para PDF
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ==========================================
+    // DADOS DAS PERGUNTAS DO QUIZ (20 perguntas)
+    // ==========================================
+    const quizData = [
+      // Tipo 1: Escolha Múltipla (mcq) - 10 perguntas
+      {
+        type: "mcq",
+        q: "Qual é a principal função do sistema reprodutor masculino?",
+        o: ["Produzir óvulos", "Produzir espermatozoides", "Regular o ciclo menstrual", "Nutrir o embrião"],
+        a: 1
+      },
+      {
+        type: "mcq",
+        q: "Qual destas glândulas produz testosterona?",
+        o: ["Ovários", "Pâncreas", "Testículos", "Hipófise"],
+        a: 2
+      },
+      {
+        type: "mcq",
+        q: "Qual é o nome da célula reprodutiva feminina?",
+        o: ["Espermatozoide", "Zigoto", "Embrião", "Óvulo"],
+        a: 3
+      },
+      {
+        type: "mcq",
+        q: "Onde ocorre geralmente a fecundação no corpo humano?",
+        o: ["Ovários", "Útero", "Trompas de Falópio", "Vagina"],
+        a: 2
+      },
+      {
+        type: "mcq",
+        q: "Como se chama a estrutura que alimenta o feto durante a gravidez?",
+        o: ["Placenta", "Ovário", "Testículo", "Hipotálamo"],
+        a: 0
+      },
+      {
+        type: "mcq",
+        q: "O ciclo menstrual tem, em média, quantos dias?",
+        o: ["14 dias", "28 dias", "30 dias", "40 dias"],
+        a: 1
+      },
+      {
+        type: "mcq",
+        q: "Qual é o nome da primeira célula formada após a fecundação?",
+        o: ["Óvulo", "Embrião", "Feto", "Zigoto"],
+        a: 3
+      },
+      {
+        type: "mcq",
+        q: "Qual destas estruturas faz parte do sistema reprodutor feminino?",
+        o: ["Pênis", "Testículo", "Útero", "Vesícula biliar"],
+        a: 2
+      },
+      {
+        type: "mcq",
+        q: "Qual é a função dos espermatozoides?",
+        o: ["Iniciar o ciclo menstrual", "Fecundar o óvulo", "Produzir hormonas", "Controlar a temperatura corporal"],
+        a: 1
+      },
+      {
+        type: "mcq",
+        q: "O que caracteriza a puberdade?",
+        o: ["Crescimento celular", "Produção de hormonas sexuais", "Formação do zigoto", "Envelhecimento"],
+        a: 1
+      },
+      
+      // Tipo 2: Múltiplas Respostas Corretas (mca) - 3 perguntas
+      {
+        type: "mca",
+        q: "Quais das seguintes estruturas pertencem ao sistema reprodutor feminino? (Selecione todas as corretas)",
+        o: ["Útero", "Pênis", "Ovários", "Trompas de Falópio", "Testículos"],
+        a: [0, 2, 3]
+      },
+      {
+        type: "mca",
+        q: "Quais são características da puberdade? (Selecione todas as corretas)",
+        o: ["Crescimento acelerado", "Desenvolvimento de características sexuais secundárias", "Início da produção de hormonas sexuais", "Diminuição da altura", "Maturação dos órgãos reprodutores"],
+        a: [0, 1, 2, 4]
+      },
+      {
+        type: "mca",
+        q: "Quais das seguintes são funções dos testículos? (Selecione todas as corretas)",
+        o: ["Produzir espermatozoides", "Produzir testosterona", "Regular o ciclo menstrual", "Armazenar óvulos", "Produzir hormonas sexuais masculinas"],
+        a: [0, 1, 4]
+      },
+      
+      // Tipo 3: Completar Frases (fill-blank) - 3 perguntas
+      {
+        type: "fill-blank",
+        q: "Complete a frase: A célula reprodutiva masculina chama-se ___ e a feminina chama-se ___.",
+        sentence: ["A célula reprodutiva masculina chama-se", null, "e a feminina chama-se", null, "."],
+        words: ["Óvulo", "Espermatozoide", "Zigoto", "Embrião"],
+        a: ["Espermatozoide", "Óvulo"]
+      },
+      {
+        type: "fill-blank",
+        q: "Complete: Durante a ___ o óvulo é libertado pelo ___ e pode ser fecundado nas ___.",
+        sentence: ["Durante a", null, "o óvulo é libertado pelo", null, "e pode ser fecundado nas", null, "."],
+        words: ["Ovulação", "Ovário", "Trompas de Falópio", "Útero", "Menstruação"],
+        a: ["Ovulação", "Ovário", "Trompas de Falópio"]
+      },
+      {
+        type: "fill-blank",
+        q: "Complete: A ___ é o órgão onde o bebé se desenvolve durante a ___.",
+        sentence: ["A", null, "é o órgão onde o bebé se desenvolve durante a", null, "."],
+        words: ["Placenta", "Útero", "Gravidez", "Ovulação", "Menstruação"],
+        a: ["Útero", "Gravidez"]
+      },
+      
+      // Tipo 4: Ordenar Frases (order) - 2 perguntas
+      {
+        type: "order",
+        q: "Ordene as etapas da fecundação até ao início da gravidez:",
+        items: ["Nidação (implantação no útero)", "Fecundação (união do óvulo e espermatozoide)", "Formação do zigoto", "Desenvolvimento embrionário inicial"],
+        a: [1, 2, 3, 0]
+      },
+      {
+        type: "order",
+        q: "Ordene as fases do desenvolvimento humano:",
+        items: ["Feto", "Zigoto", "Embrião", "Bebé"],
+        a: [1, 2, 0, 3]
+      },
+      
+      // Tipo 5: Resposta Curta (short-answer) - 2 perguntas
+      {
+        type: "short-answer",
+        q: "Qual é o nome da hormona predominantemente feminina responsável pelas características sexuais secundárias?",
+        a: "Estrogénio"
+      },
+      {
+        type: "short-answer",
+        q: "Em que órgão o bebé se desenvolve antes de nascer?",
+        a: "Útero"
+      }
+    ];
+
+    // ==========================================
+    // VARIÁVEIS GLOBAIS
+    // ==========================================
+    let currentQuestionIndex = 0;
+    let score = 0;
+    let userAnswers = [];
+    let shuffledIndices = [];
+
+    // Informações do aluno
+    let studentInfo = {};
+    let teacherEmail = "turmasvalenca@gmail.com";
+
+    // Elementos do DOM
+    const initialPage = document.getElementById('initial');
+    const quizPage = document.getElementById('quiz');
+    const summaryPage = document.getElementById('summary');
+    const questionContainer = document.getElementById('questionContainer');
+    const nextBtn = document.getElementById('nextBtn');
+    const finishBtn = document.getElementById('finishBtn');
+    const progressElement = document.getElementById('progress');
+    const progressBar = document.getElementById('progressBar');
+    const resultList = document.getElementById('resultList');
+    const finalScoreDisplay = document.getElementById('finalScore');
+    const studentInfoDisplay = document.getElementById('studentInfo');
+    const saveStatus = document.getElementById('saveStatus');
+
+    // Inputs de informação do aluno
+    const studentNameInput = document.getElementById('studentName');
+    const studentNumberInput = document.getElementById('studentNumber');
+    const studentClassInput = document.getElementById('studentClass');
+    const testDateInput = document.getElementById('testDate');
+    const testTimeInput = document.getElementById('testTime');
+    const teacherEmailInput = document.getElementById('teacherEmail');
+
+    // Variáveis para Drag & Drop (incluindo touch)
+    let draggedElement = null;
+    let startX, startY, offsetX, offsetY;
+    let currentDropTarget = null;
+
+    // ==========================================
+    // FUNÇÕES DE INICIALIZAÇÃO E NAVEGAÇÃO
+    // ==========================================
+
+    // Define data e hora atuais por defeito
+    function setDefaultDateTime() {
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = (now.getMonth() + 1).toString().padStart(2, '0');
+        const day = now.getDate().toString().padStart(2, '0');
+        const hours = now.getHours().toString().padStart(2, '0');
+        const minutes = now.getMinutes().toString().padStart(2, '0');
+
+        testDateInput.value = `${year}-${month}-${day}`;
+        testTimeInput.value = `${hours}:${minutes}`;
+    }
+
+    // Valida informações do aluno
+    function validateStudentInfo() {
+        let isValid = true;
+        document.querySelectorAll('.validation-error').forEach(el => el.classList.add('hidden'));
+
+        if (!studentNameInput.value.trim()) {
+            document.getElementById('nameError').classList.remove('hidden');
+            isValid = false;
+        }
+        if (!studentNumberInput.value.trim()) {
+            document.getElementById('numberError').classList.remove('hidden');
+            isValid = false;
+        }
+        if (!studentClassInput.value.trim()) {
+            document.getElementById('classError').classList.remove('hidden');
+            isValid = false;
+        }
+        if (!testDateInput.value) {
+            document.getElementById('dateError').classList.remove('hidden');
+            isValid = false;
+        }
+        if (!testTimeInput.value) {
+            document.getElementById('timeError').classList.remove('hidden');
+            isValid = false;
+        }
+        
+        teacherEmail = teacherEmailInput.value.trim();
+        if (!teacherEmail || !teacherEmail.includes('@')) {
+             alert('Por favor, insira um email válido para o professor.');
+             isValid = false;
+        }
+
+        return isValid;
+    }
+
+    // Inicia o quiz diretamente
+    function startQuiz() {
+        if (validateStudentInfo()) {
+            studentInfo = {
+                name: studentNameInput.value.trim(),
+                number: studentNumberInput.value.trim(),
+                class: studentClassInput.value.trim(),
+                date: testDateInput.value,
+                time: testTimeInput.value
+            };
+            teacherEmail = teacherEmailInput.value.trim();
+
+            // Resetar estado
+            currentQuestionIndex = 0;
+            score = 0;
+            userAnswers = new Array(quizData.length).fill(null);
+
+            // Ordem sequencial das perguntas
+            shuffledIndices = Array.from(quizData.keys());
+
+            initialPage.classList.add('hidden');
+            quizPage.classList.remove('hidden');
+            progressBar.classList.remove('hidden');
+            nextBtn.classList.remove('hidden');
+            finishBtn.classList.add('hidden');
+
+            loadQuestion();
+        }
+    }
+
+    // ==========================================
+    // LÓGICA DO QUIZ
+    // ==========================================
+
+    // Carrega a pergunta atual
+    function loadQuestion() {
+        const questionIndex = shuffledIndices[currentQuestionIndex];
+        const questionData = quizData[questionIndex];
+
+        questionContainer.innerHTML = '';
+        progressBar.style.display = 'block';
+        updateProgress();
+
+        const questionElement = document.createElement('div');
+        questionElement.classList.add('question');
+        questionElement.setAttribute('data-question-index', questionIndex);
+        questionElement.setAttribute('data-question-type', questionData.type);
+
+        const titleElement = document.createElement('div');
+        titleElement.classList.add('question-title');
+        titleElement.textContent = `Pergunta ${currentQuestionIndex + 1}: ${questionData.q}`;
+        questionElement.appendChild(titleElement);
+
+        // Carrega o tipo específico de pergunta
+        switch (questionData.type) {
+            case 'mcq':
+                loadMCQ(questionElement, questionData);
+                break;
+            case 'mca':
+                loadMCA(questionElement, questionData);
+                break;
+            case 'fill-blank':
+                loadFillBlank(questionElement, questionData);
+                break;
+            case 'order':
+                loadOrder(questionElement, questionData);
+                break;
+            case 'short-answer':
+                loadShortAnswer(questionElement, questionData);
+                break;
+            default:
+                console.error('Tipo de pergunta desconhecido:', questionData.type);
+        }
+
+        questionContainer.appendChild(questionElement);
+
+        // Configura o botão "Próxima" / "Terminar"
+        if (currentQuestionIndex === quizData.length - 1) {
+            nextBtn.classList.add('hidden');
+            finishBtn.classList.remove('hidden');
+        } else {
+            nextBtn.classList.remove('hidden');
+            finishBtn.classList.add('hidden');
+        }
+    }
+
+    // --- Funções para carregar cada tipo de pergunta --- 
+
+    function loadMCQ(container, data) {
+        const optionsContainer = document.createElement('div');
+        optionsContainer.classList.add('options-mcq');
+        data.o.forEach((option, index) => {
+            const button = document.createElement('button');
+            button.textContent = option;
+            button.onclick = () => selectMCQAnswer(index, button);
+            optionsContainer.appendChild(button);
+        });
+        container.appendChild(optionsContainer);
+    }
+
+    function loadMCA(container, data) {
+        const optionsContainer = document.createElement('div');
+        optionsContainer.classList.add('options-mca');
+        data.o.forEach((option, index) => {
+            const label = document.createElement('label');
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.value = index;
+            checkbox.name = `q${currentQuestionIndex}`;
+            label.appendChild(checkbox);
+            label.appendChild(document.createTextNode(` ${option}`));
+            optionsContainer.appendChild(label);
+        });
+        container.appendChild(optionsContainer);
+    }
+
+    function loadFillBlank(container, data) {
+        const fbContainer = document.createElement('div');
+        fbContainer.classList.add('fill-blank-container');
+
+        const sentenceContainer = document.createElement('p');
+        sentenceContainer.style.fontSize = '1.1em';
+        sentenceContainer.style.lineHeight = '1.8';
+        
+        data.sentence.forEach((part, index) => {
+            if (part === null) {
+                const blank = document.createElement('span');
+                blank.classList.add('blank-space');
+                blank.setAttribute('data-blank-index', index);
+                // Eventos Drag & Drop (Desktop)
+                blank.ondragover = (event) => event.preventDefault();
+                blank.ondragenter = (event) => event.target.classList.add('drag-over');
+                blank.ondragleave = (event) => event.target.classList.remove('drag-over');
+                blank.ondrop = dropWord;
+                sentenceContainer.appendChild(blank);
+            } else {
+                const textNode = document.createElement('span');
+                textNode.classList.add('sentence-part');
+                textNode.textContent = part + ' ';
+                sentenceContainer.appendChild(textNode);
+            }
+        });
+        fbContainer.appendChild(sentenceContainer);
+
+        const wordBank = document.createElement('div');
+        wordBank.classList.add('word-bank');
+        const bankTitle = document.createElement('h4');
+        bankTitle.textContent = 'Arraste as palavras para os espaços corretos:';
+        wordBank.appendChild(bankTitle);
+        
+        // Embaralhar palavras do banco
+        const shuffledWords = [...data.words].sort(() => Math.random() - 0.5);
+        shuffledWords.forEach((word, index) => {
+            const wordElement = document.createElement('span');
+            wordElement.classList.add('draggable-word');
+            wordElement.textContent = word;
+            wordElement.draggable = true;
+            wordElement.id = `word-${currentQuestionIndex}-${index}`;
+            // Eventos Drag & Drop (Desktop)
+            wordElement.ondragstart = dragWord;
+            wordElement.ondragend = (e) => e.target.classList.remove('dragging');
+            // Eventos Touch (Mobile)
+            wordElement.addEventListener('touchstart', handleTouchStart, { passive: false });
+            wordElement.addEventListener('touchmove', handleTouchMove, { passive: false });
+            wordElement.addEventListener('touchend', handleTouchEnd);
+            wordBank.appendChild(wordElement);
+        });
+        fbContainer.appendChild(wordBank);
+
+        container.appendChild(fbContainer);
+    }
+
+    function loadOrder(container, data) {
+        const orderContainer = document.createElement('ul');
+        orderContainer.classList.add('order-items-container');
+        orderContainer.id = `order-list-${currentQuestionIndex}`;
+
+        // Embaralhar itens para apresentação inicial
+        const shuffledItems = [...data.items].map((item, index) => ({ text: item, originalIndex: index }))
+                                           .sort(() => Math.random() - 0.5);
+
+        shuffledItems.forEach((itemData, index) => {
+            const listItem = document.createElement('li');
+            listItem.classList.add('order-item');
+            listItem.textContent = itemData.text;
+            listItem.draggable = true;
+            listItem.id = `order-item-${currentQuestionIndex}-${index}`;
+            listItem.setAttribute('data-original-index', itemData.originalIndex);
+            // Eventos Drag & Drop (Desktop)
+            listItem.ondragstart = dragStartOrder;
+            listItem.ondragover = dragOverOrder;
+            listItem.ondrop = dropOrder;
+            listItem.ondragend = dragEndOrder;
+            // Eventos Touch (Mobile)
+            listItem.addEventListener('touchstart', handleTouchStart, { passive: false });
+            listItem.addEventListener('touchmove', handleTouchMove, { passive: false });
+            listItem.addEventListener('touchend', handleTouchEnd);
+            orderContainer.appendChild(listItem);
+        });
+        container.appendChild(orderContainer);
+        
+        const instruction = document.createElement('div');
+        instruction.classList.add('order-instruction');
+        instruction.textContent = 'Arraste os itens para colocá-los na ordem correta.';
+        container.appendChild(instruction);
+    }
+
+    function loadShortAnswer(container, data) {
+        const saContainer = document.createElement('div');
+        saContainer.classList.add('short-answer-container');
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.placeholder = 'Digite sua resposta aqui (uma palavra)';
+        saContainer.appendChild(input);
+        container.appendChild(saContainer);
+    }
+
+    // --- Funções de interação e resposta --- 
+
+    function selectMCQAnswer(selectedIndex, buttonElement) {
+        const buttons = questionContainer.querySelectorAll('.options-mcq button');
+        buttons.forEach(btn => btn.classList.remove('selected'));
+        buttonElement.classList.add('selected');
+        const questionIndex = parseInt(questionContainer.querySelector('.question').getAttribute('data-question-index'));
+        userAnswers[questionIndex] = selectedIndex;
+    }
+
+    // --- Funções Drag & Drop (Desktop) --- 
+    function dragWord(event) {
+        event.dataTransfer.setData("text/plain", event.target.id);
+        event.target.classList.add('dragging');
+        draggedElement = event.target;
+    }
+
+    function dropWord(event) {
+        event.preventDefault();
+        const targetBlank = event.target;
+        if (targetBlank.classList.contains('blank-space') && draggedElement && draggedElement.classList.contains('draggable-word')) {
+            // Se o espaço já tiver uma palavra, devolve-a ao banco
+            if (targetBlank.firstChild) {
+                const existingWord = targetBlank.firstChild;
+                document.querySelector('.word-bank').appendChild(existingWord);
+            }
+            // Move a nova palavra para o espaço
+            targetBlank.innerHTML = '';
+            targetBlank.appendChild(draggedElement);
+            draggedElement.classList.remove('dragging');
+        }
+        targetBlank.classList.remove('drag-over');
+        draggedElement = null;
+    }
+
+    let draggedOrderItem = null;
+    function dragStartOrder(event) {
+        draggedOrderItem = event.target;
+        event.target.classList.add('dragging');
+        event.dataTransfer.effectAllowed = 'move';
+    }
+
+    function dragOverOrder(event) {
+        event.preventDefault();
+        const targetItem = event.target.closest('.order-item');
+        if (targetItem && targetItem !== draggedOrderItem) {
+            const list = targetItem.parentNode;
+            const rect = targetItem.getBoundingClientRect();
+            const offsetY = event.clientY - rect.top;
+            if (offsetY < rect.height / 2) {
+                list.insertBefore(draggedOrderItem, targetItem);
+            } else {
+                list.insertBefore(draggedOrderItem, targetItem.nextSibling);
+            }
+        }
+    }
+
+    function dropOrder(event) {
+        event.preventDefault();
+    }
+
+    function dragEndOrder(event) {
+        if (draggedOrderItem) {
+            draggedOrderItem.classList.remove('dragging');
+        }
+        draggedOrderItem = null;
+    }
+
+    // --- Funções Touch (Mobile) --- 
+    function handleTouchStart(event) {
+        if (event.touches.length !== 1) return;
+        event.preventDefault(); // Previne scroll e outros comportamentos padrão
+        draggedElement = event.target;
+        draggedElement.classList.add('dragging');
+        
+        const touch = event.touches[0];
+        startX = touch.clientX;
+        startY = touch.clientY;
+        const rect = draggedElement.getBoundingClientRect();
+        offsetX = startX - rect.left;
+        offsetY = startY - rect.top;
+
+        // Posiciona o elemento para seguir o dedo
+        draggedElement.style.position = 'absolute';
+        draggedElement.style.left = `${startX - offsetX}px`;
+        draggedElement.style.top = `${startY - offsetY}px`;
+        draggedElement.style.width = `${rect.width}px`; // Mantém a largura original
+    }
+
+    function handleTouchMove(event) {
+        if (!draggedElement || event.touches.length !== 1) return;
+        event.preventDefault(); // Previne scroll
+        
+        const touch = event.touches[0];
+        const currentX = touch.clientX;
+        const currentY = touch.clientY;
+
+        // Move o elemento
+        draggedElement.style.left = `${currentX - offsetX}px`;
+        draggedElement.style.top = `${currentY - offsetY}px`;
+
+        // Deteta o elemento sob o dedo
+        draggedElement.style.visibility = 'hidden'; // Esconde temporariamente para encontrar o elemento por baixo
+        const elementBelow = document.elementFromPoint(currentX, currentY);
+        draggedElement.style.visibility = 'visible';
+
+        // Remove highlight de alvos anteriores
+        if (currentDropTarget && currentDropTarget !== elementBelow) {
+            currentDropTarget.classList.remove('drag-over');
+            currentDropTarget = null;
+        }
+
+        // Verifica se é um alvo válido e adiciona highlight
+        if (elementBelow) {
+            const dropTarget = elementBelow.closest('.blank-space, .order-item');
+            if (dropTarget) {
+                if (draggedElement.classList.contains('draggable-word') && dropTarget.classList.contains('blank-space')) {
+                    dropTarget.classList.add('drag-over');
+                    currentDropTarget = dropTarget;
+                } else if (draggedElement.classList.contains('order-item') && dropTarget.classList.contains('order-item') && dropTarget !== draggedElement) {
+                    currentDropTarget = dropTarget; // Não adiciona classe 'drag-over' para order-items, a inserção é feita aqui
+                    const list = dropTarget.parentNode;
+                    const rect = dropTarget.getBoundingClientRect();
+                    const touchY = event.touches[0].clientY;
+                    if (touchY < rect.top + rect.height / 2) {
+                        list.insertBefore(draggedElement, dropTarget);
+                    } else {
+                        list.insertBefore(draggedElement, dropTarget.nextSibling);
+                    }
+                }
+            }
+        }
+    }
+
+    function handleTouchEnd(event) {
+        if (!draggedElement) return;
+
+        // Reseta estilos do elemento arrastado
+        draggedElement.classList.remove('dragging');
+        draggedElement.style.position = '';
+        draggedElement.style.left = '';
+        draggedElement.style.top = '';
+        draggedElement.style.width = '';
+
+        // Verifica se soltou sobre um alvo válido
+        if (currentDropTarget) {
+            currentDropTarget.classList.remove('drag-over');
+            if (draggedElement.classList.contains('draggable-word') && currentDropTarget.classList.contains('blank-space')) {
+                // Devolve palavra existente ao banco, se houver
+                if (currentDropTarget.firstChild) {
+                    document.querySelector('.word-bank').appendChild(currentDropTarget.firstChild);
+                }
+                // Coloca a nova palavra no espaço
+                currentDropTarget.innerHTML = '';
+                currentDropTarget.appendChild(draggedElement);
+            }
+            // Para order-items, a reordenação já foi feita no touchmove
+        } else {
+            // Se soltou fora de um alvo válido, devolve ao local original
+            if (draggedElement.classList.contains('draggable-word')) {
+                document.querySelector('.word-bank').appendChild(draggedElement);
+            } 
+            // Para order-items, não precisa fazer nada, já está na lista
+        }
+
+        // Limpa variáveis de estado
+        draggedElement = null;
+        currentDropTarget = null;
+    }
+
+    // --- Progressão --- 
+
+    function updateProgress() {
+        const progressPercentage = ((currentQuestionIndex) / quizData.length) * 100;
+        progressElement.style.width = `${progressPercentage}%`;
+    }
+
+    // Avança para a próxima pergunta
+    function nextQuestion() {
+        saveCurrentAnswer();
+        currentQuestionIndex++;
+        if (currentQuestionIndex < quizData.length) {
+            loadQuestion();
+        } else {
+            finishQuiz();
+        }
+    }
+
+    // Salva a resposta da pergunta atual
+    function saveCurrentAnswer() {
+        const questionElement = questionContainer.querySelector('.question');
+        if (!questionElement) return;
+
+        const questionIndex = parseInt(questionElement.getAttribute('data-question-index'));
+        const questionType = questionElement.getAttribute('data-question-type');
+
+        switch (questionType) {
+            case 'mcq':
+                // A resposta já é salva no clique do botão
+                break;
+            case 'mca':
+                const selectedCheckboxes = questionElement.querySelectorAll('.options-mca input[type="checkbox"]:checked');
+                userAnswers[questionIndex] = Array.from(selectedCheckboxes).map(cb => parseInt(cb.value));
+                break;
+            case 'fill-blank':
+                const blanks = questionElement.querySelectorAll('.blank-space');
+                const filledWords = [];
+                blanks.forEach(blank => {
+                    const wordElement = blank.querySelector('.draggable-word');
+                    filledWords.push(wordElement ? wordElement.textContent : null);
+                });
+                userAnswers[questionIndex] = filledWords;
+                break;
+            case 'order':
+                const orderedItems = questionElement.querySelectorAll('.order-item');
+                const currentOrderIndices = Array.from(orderedItems).map(item => parseInt(item.getAttribute('data-original-index')));
+                userAnswers[questionIndex] = currentOrderIndices;
+                break;
+            case 'short-answer':
+                const inputElement = questionElement.querySelector('.short-answer-container input[type="text"]');
+                userAnswers[questionIndex] = inputElement ? inputElement.value.trim() : null;
+                break;
+        }
+    }
+
+    // Finaliza o quiz e mostra o resumo
+    function finishQuiz() {
+        saveCurrentAnswer();
+        quizPage.classList.add('hidden');
+        summaryPage.classList.remove('hidden');
+        progressBar.style.display = 'none';
+        calculateScore();
+        displayResults();
+    }
+
+    // ==========================================
+    // CÁLCULO DE PONTUAÇÃO E RESULTADOS
+    // ==========================================
+
+    function calculateScore() {
+        score = 0;
+        quizData.forEach((questionData, index) => {
+            const originalIndex = shuffledIndices[index]; // Usar o índice original da pergunta
+            const answer = userAnswers[originalIndex]; // Usar a resposta correspondente ao índice original
+            let isCorrect = false;
+
+            if (answer !== null && answer !== undefined) {
+                switch (questionData.type) {
+                    case 'mcq':
+                        isCorrect = (answer === questionData.a);
+                        break;
+                    case 'mca':
+                        if (Array.isArray(answer)) {
+                            const correctAnswers = new Set(questionData.a);
+                            const selectedAnswers = new Set(answer);
+                            isCorrect = questionData.a.length === answer.length && 
+                                        [...selectedAnswers].every(val => correctAnswers.has(val));
+                        }
+                        break;
+                    case 'fill-blank':
+                        if (Array.isArray(answer) && answer.length === questionData.a.length) {
+                            isCorrect = answer.every((word, i) => word && questionData.a[i] && word.toLowerCase() === questionData.a[i].toLowerCase());
+                        }
+                        break;
+                    case 'order':
+                        if (Array.isArray(answer) && answer.length === questionData.a.length) {
+                            isCorrect = answer.every((originalIdx, i) => originalIdx === questionData.a[i]);
+                        }
+                        break;
+                    case 'short-answer':
+                        isCorrect = (typeof answer === 'string' && typeof questionData.a === 'string' && 
+                                     answer.toLowerCase() === questionData.a.toLowerCase());
+                        break;
+                }
+            }
+
+            if (isCorrect) {
+                score++;
+            }
+            // Armazena a resposta e correção no objeto quizData original
+            quizData[originalIndex].userAnswer = answer;
+            quizData[originalIndex].isCorrect = isCorrect;
+        });
+    }
+
+    function displayResults() {
+        resultList.innerHTML = '';
+        studentInfoDisplay.innerHTML = `
+            <p><strong>Aluno:</strong> ${studentInfo.name} | <strong>Nº:</strong> ${studentInfo.number} | <strong>Turma:</strong> ${studentInfo.class}</p>
+            <p><strong>Data:</strong> ${studentInfo.date} | <strong>Hora:</strong> ${studentInfo.time}</p>
+        `;
+
+        // Itera sobre os índices na ordem em que foram apresentados
+        shuffledIndices.forEach((originalIndex, displayOrderIndex) => {
+            const questionData = quizData[originalIndex]; // Pega os dados da pergunta original
+            const resultItem = document.createElement('div');
+            resultItem.classList.add('result-item');
+            resultItem.classList.add(questionData.isCorrect ? 'correct' : 'incorrect');
+
+            const questionText = document.createElement('div');
+            questionText.classList.add('question-text');
+            questionText.textContent = `Pergunta ${displayOrderIndex + 1}: ${questionData.q}`;
+            resultItem.appendChild(questionText);
+
+            const userAnswerDiv = document.createElement('div');
+            userAnswerDiv.classList.add('user-answer');
+            let userAnswerText = 'Não respondida';
+            if (questionData.userAnswer !== null && questionData.userAnswer !== undefined) {
+                if (Array.isArray(questionData.userAnswer)) {
+                    if (questionData.type === 'mca') {
+                        userAnswerText = questionData.userAnswer.map(i => questionData.o[i]).join(', ') || 'Nenhuma opção selecionada';
+                    } else if (questionData.type === 'fill-blank') {
+                        userAnswerText = questionData.userAnswer.map(w => w || '___').join(', ');
+                    } else if (questionData.type === 'order') {
+                        userAnswerText = questionData.userAnswer.map(i => questionData.items[i]).join(' → ');
+                    } else {
+                        userAnswerText = questionData.userAnswer.join(', ');
+                    }
+                } else if (questionData.type === 'mcq') {
+                     userAnswerText = questionData.o[questionData.userAnswer];
+                } else {
+                    userAnswerText = questionData.userAnswer;
+                }
+            }
+            userAnswerDiv.innerHTML = `Sua resposta: <span class="${questionData.isCorrect ? 'user-answer-correct' : 'user-answer-incorrect'}">${userAnswerText}</span>`;
+            resultItem.appendChild(userAnswerDiv);
+
+            if (!questionData.isCorrect) {
+                const correctAnswerDiv = document.createElement('div');
+                correctAnswerDiv.classList.add('correct-answer');
+                let correctAnswerText = '';
+                switch (questionData.type) {
+                    case 'mcq':
+                        correctAnswerText = questionData.o[questionData.a];
+                        break;
+                    case 'mca':
+                        correctAnswerText = questionData.a.map(i => questionData.o[i]).join(', ');
+                        break;
+                    case 'fill-blank':
+                        correctAnswerText = questionData.a.join(', ');
+                        break;
+                    case 'order':
+                        correctAnswerText = questionData.a.map(i => questionData.items[i]).join(' → ');
+                        break;
+                    case 'short-answer':
+                        correctAnswerText = questionData.a;
+                        break;
+                }
+                correctAnswerDiv.innerHTML = `<span class="correct-answer-label">Resposta correta:</span> <span class="correct-answer-value">${correctAnswerText}</span>`;
+                resultItem.appendChild(correctAnswerDiv);
+            }
+
+            resultList.appendChild(resultItem);
+        });
+
+        const percentage = (score / quizData.length) * 100;
+        let qualitativeEval = '';
+        if (percentage >= 90) qualitativeEval = 'Excelente!';
+        else if (percentage >= 70) qualitativeEval = 'Bom trabalho!';
+        else if (percentage >= 50) qualitativeEval = 'Suficiente, mas pode melhorar.';
+        else qualitativeEval = 'Precisa de estudar mais.';
+
+        finalScoreDisplay.innerHTML = `
+            <strong>Pontuação Final:</strong> ${score} de ${quizData.length} (${percentage.toFixed(1)}%)<br>
+            <strong>Avaliação:</strong> ${qualitativeEval}
+        `;
+    }
+
+    // ==========================================
+    // FUNÇÕES DE EXPORTAÇÃO MELHORADAS
+    // ==========================================
+
+    function getResultsData() {
+        const results = {
+            studentInfo: studentInfo,
+            teacherEmail: teacherEmail,
+            score: score,
+            totalQuestions: quizData.length,
+            percentage: ((score / quizData.length) * 100).toFixed(1),
+            qualitativeEval: '',
+            questions: []
+        };
+        
+        const percentageNum = parseFloat(results.percentage);
+        if (percentageNum >= 90) results.qualitativeEval = 'Excelente';
+        else if (percentageNum >= 70) results.qualitativeEval = 'Bom';
+        else if (percentageNum >= 50) results.qualitativeEval = 'Suficiente';
+        else results.qualitativeEval = 'Insuficiente';
+
+        // Itera na ordem original das perguntas para os dados de exportação
+        quizData.forEach((q, index) => {
+            let userAnswerText = 'Não respondida';
+            let correctAnswerText = '';
+            
+            if (q.userAnswer !== null && q.userAnswer !== undefined) {
+                 if (Array.isArray(q.userAnswer)) {
+                    if (q.type === 'mca') userAnswerText = q.userAnswer.map(i => q.o[i]).join(', ') || 'Nenhuma';
+                    else if (q.type === 'fill-blank') userAnswerText = q.userAnswer.map(w => w || '___').join(', ');
+                    else if (q.type === 'order') userAnswerText = q.userAnswer.map(i => q.items[i]).join(' → ');
+                    else userAnswerText = q.userAnswer.join(', ');
+                } else if (q.type === 'mcq') {
+                     userAnswerText = q.o[q.userAnswer];
+                } else {
+                    userAnswerText = q.userAnswer;
+                }
+            }
+
+            switch (q.type) {
+                case 'mcq': correctAnswerText = q.o[q.a]; break;
+                case 'mca': correctAnswerText = q.a.map(i => q.o[i]).join(', '); break;
+                case 'fill-blank': correctAnswerText = q.a.join(', '); break;
+                case 'order': correctAnswerText = q.a.map(i => q.items[i]).join(' → '); break;
+                case 'short-answer': correctAnswerText = q.a; break;
+            }
+
+            results.questions.push({
+                number: index + 1,
+                question: q.q,
+                userAnswer: userAnswerText,
+                correctAnswer: correctAnswerText,
+                isCorrect: q.isCorrect ? 'Sim' : 'Não'
+            });
+        });
+        return results;
+    }
+
+    function exportToPDF() {
+        showSaveStatus('loading', 'A gerar PDF...');
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        const data = getResultsData();
+        let y = 20;
+        const pageHeight = doc.internal.pageSize.height;
+        const margin = 20;
+        const lineHeight = 6;
+
+        function checkPageBreak(neededHeight) {
+            if (y + neededHeight > pageHeight - margin) {
+                doc.addPage();
+                y = margin;
+            }
+        }
+
+        // Cabeçalho profissional
+        doc.setFontSize(18);
+        doc.setFont(undefined, 'bold');
+        doc.text("AGRUPAMENTO MURALHAS DO MINHO", margin, y);
+        y += 8;
+        
+        doc.setFontSize(14);
+        doc.text("Disciplina: Ciências Naturais", margin, y);
+        y += 6;
+        doc.text("Professor: Fernando Cruz", margin, y);
+        y += 6;
+        doc.text("Teste: Sistema Reprodutor Humano", margin, y);
+        y += 15;
+
+        // Linha separadora
+        doc.setLineWidth(0.5);
+        doc.line(margin, y, doc.internal.pageSize.width - margin, y);
+        y += 10;
+
+        // Informações do aluno
+        doc.setFontSize(12);
+        doc.setFont(undefined, 'bold');
+        doc.text("DADOS DO ALUNO", margin, y);
+        y += 8;
+        
+        doc.setFont(undefined, 'normal');
+        doc.text(`Nome: ${data.studentInfo.name}`, margin, y);
+        y += lineHeight;
+        doc.text(`Número: ${data.studentInfo.number}`, margin, y);
+        doc.text(`Turma: ${data.studentInfo.class}`, margin + 60, y);
+        y += lineHeight;
+        doc.text(`Data: ${data.studentInfo.date}`, margin, y);
+        doc.text(`Hora: ${data.studentInfo.time}`, margin + 60, y);
+        y += 15;
+
+        // Resultados
+        doc.setFont(undefined, 'bold');
+        doc.text("RESULTADOS", margin, y);
+        y += 8;
+        
+        doc.setFont(undefined, 'normal');
+        doc.text(`Pontuação: ${data.score}/${data.totalQuestions} (${data.percentage}%)`, margin, y);
+        y += lineHeight;
+        doc.text(`Avaliação: ${data.qualitativeEval}`, margin, y);
+        y += 15;
+
+        // Detalhes das respostas
+        doc.setFont(undefined, 'bold');
+        doc.text("DETALHES DAS RESPOSTAS", margin, y);
+        y += 10;
+
+        doc.setFontSize(10);
+        data.questions.forEach(q => {
+            checkPageBreak(25);
+            
+            doc.setFont(undefined, 'bold');
+            const questionLines = doc.splitTextToSize(`${q.number}. ${q.question}`, doc.internal.pageSize.width - margin * 2);
+            doc.text(questionLines, margin, y);
+            y += questionLines.length * 4;
+            
+            doc.setFont(undefined, 'normal');
+            doc.setTextColor(q.isCorrect === 'Sim' ? 0 : 255, q.isCorrect === 'Sim' ? 100 : 0, 0);
+            const userAnswerLines = doc.splitTextToSize(`Resposta: ${q.userAnswer}`, doc.internal.pageSize.width - margin * 2 - 5);
+            doc.text(userAnswerLines, margin + 5, y);
+            y += userAnswerLines.length * 4;
+            
+            if (q.isCorrect === 'Não') {
+                doc.setTextColor(0, 100, 0);
+                const correctAnswerLines = doc.splitTextToSize(`Resposta correta: ${q.correctAnswer}`, doc.internal.pageSize.width - margin * 2 - 5);
+                doc.text(correctAnswerLines, margin + 5, y);
+                y += correctAnswerLines.length * 4;
+            }
+            
+            doc.setTextColor(0, 0, 0);
+            y += 3;
+        });
+
+        try {
+            doc.save(`Teste_${data.studentInfo.name.replace(/\s+/g, '_')}_${data.studentInfo.number}.pdf`);
+            showSaveStatus('success', 'PDF exportado com sucesso!');
+        } catch (e) {
+            console.error("Erro ao gerar PDF:", e);
+            showSaveStatus('error', 'Erro ao exportar PDF.');
+        }
+    }
+
+    function exportToExcel() {
+        showSaveStatus('loading', 'A gerar Excel...');
+        const data = getResultsData();
+        
+        // Folha de resumo
+        const summaryData = [
+            ["AGRUPAMENTO MURALHAS DO MINHO"],
+            ["Disciplina: Ciências Naturais"],
+            ["Professor: Fernando Cruz"],
+            ["Teste: Sistema Reprodutor Humano"],
+            [],
+            ["DADOS DO ALUNO"],
+            ["Nome", data.studentInfo.name],
+            ["Número", data.studentInfo.number],
+            ["Turma", data.studentInfo.class],
+            ["Data", data.studentInfo.date],
+            ["Hora", data.studentInfo.time],
+            [],
+            ["RESULTADOS"],
+            ["Pontuação", `${data.score}/${data.totalQuestions}`],
+            ["Percentagem", `${data.percentage}%`],
+            ["Avaliação", data.qualitativeEval],
+            [],
+            ["DETALHES DAS RESPOSTAS"],
+            ["Pergunta", "Resposta do Aluno", "Resposta Correta", "Correto?"]
+        ];
+
+        data.questions.forEach(q => {
+            summaryData.push([
+                `${q.number}. ${q.question}`,
+                q.userAnswer,
+                q.correctAnswer,
+                q.isCorrect
+            ]);
+        });
+
+        const worksheet = XLSX.utils.aoa_to_sheet(summaryData);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Resultados");
+
+        // Formatação das colunas
+        worksheet['!cols'] = [
+            { wch: 60 }, // Pergunta
+            { wch: 30 }, // Resposta do Aluno
+            { wch: 30 }, // Resposta Correta
+            { wch: 10 }  // Correto?
+        ];
+
+        try {
+            XLSX.writeFile(workbook, `Teste_${data.studentInfo.name.replace(/\s+/g, '_')}_${data.studentInfo.number}.xlsx`);
+            showSaveStatus('success', 'Excel exportado com sucesso!');
+        } catch (e) {
+            console.error("Erro ao gerar Excel:", e);
+            showSaveStatus('error', 'Erro ao exportar Excel.');
+        }
+    }
+
+    function sendByEmail() {
+        showSaveStatus('loading', 'A preparar email...');
+        const data = getResultsData();
+        const subject = `Resultados Teste - ${data.studentInfo.name} (${data.studentInfo.class})`;
+        
+        let body = `AGRUPAMENTO MURALHAS DO MINHO\n`;
+        body += `Disciplina: Ciências Naturais - Professor: Fernando Cruz\n`;
+        body += `Teste: Sistema Reprodutor Humano\n\n`;
+        body += `DADOS DO ALUNO:\n`;
+        body += `Nome: ${data.studentInfo.name}\n`;
+        body += `Número: ${data.studentInfo.number}\n`;
+        body += `Turma: ${data.studentInfo.class}\n`;
+        body += `Data: ${data.studentInfo.date} | Hora: ${data.studentInfo.time}\n\n`;
+        body += `RESULTADOS:\n`;
+        body += `Pontuação: ${data.score}/${data.totalQuestions} (${data.percentage}%)\n`;
+        body += `Avaliação: ${data.qualitativeEval}\n\n`;
+        body += `DETALHES DAS RESPOSTAS:\n`;
+        body += `${'='.repeat(50)}\n`;
+
+        data.questions.forEach(q => {
+            body += `${q.number}. ${q.question}\n`;
+            body += `   Resposta do aluno: ${q.userAnswer}\n`;
+            body += `   Resposta correta: ${q.correctAnswer}\n`;
+            body += `   Correto: ${q.isCorrect === 'Sim' ? '✓ SIM' : '✗ NÃO'}\n`;
+            body += `${'='.repeat(50)}\n`;
+        });
+
+        const mailtoLink = `mailto:${teacherEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+        window.location.href = mailtoLink;
+        
+        setTimeout(() => {
+             showSaveStatus('success', 'Cliente de email aberto. Verifique e envie.');
+        }, 500);
+    }
+
+    function showSaveStatus(type, message) {
+        saveStatus.className = `save-status ${type}`;
+        saveStatus.textContent = message;
+        saveStatus.classList.remove('hidden');
+        setTimeout(() => {
+            saveStatus.classList.add('hidden');
+        }, 3000);
+    }
+
+    // ==========================================
+    // INICIALIZAÇÃO
+    // ==========================================
+    document.addEventListener('DOMContentLoaded', () => {
+        setDefaultDateTime();
+        
+        // Adiciona listeners globais para touch end (para garantir que o estado é limpo)
+        document.addEventListener('touchend', (event) => {
+            if (draggedElement) {
+                handleTouchEnd(event); // Chama o handler para limpar o estado se o toque terminar fora de um alvo
+            }
+        });
+    });
+
+  </script>
+</body>
+</html>
+
